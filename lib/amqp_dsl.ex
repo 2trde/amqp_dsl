@@ -109,29 +109,47 @@ defmodule AmqpDsl do
       @queues_to_listen []
       unquote(body)
 
-      unless @dfined_connection do
-        def connection(), do: "amqp://guest:guest@localhost"
-      end
+      #unless @defined_connection do
+      #  def connection(), do: "amqp://guest:guest@localhost"
+      #end
 
 
       def start_link do
         GenServer.start_link(__MODULE__, [], name: __MODULE__)
       end
 
+      def rabbitmq_connect() do
+        IO.puts "AMQP connection to #{connection()}"
+        AMQP.Connection.open(connection())
+        |> case do
+          {:ok, conn} ->
+            Process.monitor(conn.pid)
+            {:ok, chan} = AMQP.Channel.open(conn)
+
+            # Limit unacknowledged messages to 10
+            AMQP.Basic.qos(chan, prefetch_count: 10)
+
+            # Register the GenServer process as a consumer
+            @queues_to_listen
+            |> Enum.map(fn(name) ->
+              {:ok, consumer_tag} = AMQP.Basic.consume(chan, name)
+              IO.puts "consumer_tag: #{consumer_tag}"
+            end)
+            {:ok, chan}
+          {:error, _} ->
+            # Reconnection loop
+            :timer.sleep(5000)
+            rabbitmq_connect
+        end
+      end
+
       def init(_opts) do
-        {:ok, conn} = AMQP.Connection.open("amqp://guest:guest@localhost")
-        {:ok, chan} = AMQP.Channel.open(conn)
+        {:ok, chan} = rabbitmq_connect()
+      end
 
-        # Limit unacknowledged messages to 10
-        AMQP.Basic.qos(chan, prefetch_count: 10)
-
-        # Register the GenServer process as a consumer
-        @queues_to_listen
-        |> Enum.map(fn(name) ->
-          {:ok, consumer_tag} = AMQP.Basic.consume(chan, name)
-          IO.puts "consumer_tag: #{consumer_tag}"
-        end)
-        {:ok, chan}
+      def handle_info({:DOWN, _, :process, _pid, _reason}, _) do
+        {:ok, chan} = rabbitmq_connect
+        {:noreply, chan}
       end
 
       # Confirmation sent by the broker after registering this process as a consumer
