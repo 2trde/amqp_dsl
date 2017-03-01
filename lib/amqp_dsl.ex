@@ -31,10 +31,20 @@ defmodule AmqpDsl do
   define a queue to be listened
   """
   defmacro queue(name, clauses \\ []) do
+    id = Macro.to_string(name)
     quote do
-      def queue_name(@queue_count), do: unquote(name)
+      @queue_id unquote(id)
+      @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
+      @queue_ids [@queue_id | @queue_ids]
       unquote(clauses[:do])
-      @queue_count @queue_count+1
+
+      def queue_init(channel, @queue_id) do
+        AMQP.Queue.declare(channel, unquote(name), @queue_opts)
+        AMQP.Queue.subscribe(channel, unquote(name), fn(payload, %{delivery_tag: tag} = _meta) ->
+          consume(@queue_id, channel, payload, tag)
+        end)
+      end
+      @queue_id nil
     end
   end
 
@@ -44,7 +54,7 @@ defmodule AmqpDsl do
   """
   defmacro on_receive(msg_var, [do: body]) do
     quote do
-      def consume(channel, unquote(msg_var) = message, tag) do
+      def consume(@queue_id, channel, unquote(msg_var) = message, tag) do
         unquote(msg_var) = message
         unquote(body)
         AMQP.Basic.ack channel, tag
@@ -100,6 +110,12 @@ defmodule AmqpDsl do
     end
   end
 
+  defmacro rpc_receive(name, request_queue, response_queue) do
+    quote do
+
+    end
+  end
+
 
   @doc """
   main macro to define messaging for a module. The module will become an GenServer and can be
@@ -107,12 +123,12 @@ defmodule AmqpDsl do
   """
   defmacro messaging([do: body]) do
     quote do
-      @queue_count 0
+      @queue_ids []
       unquote(body)
 
-      #unless @defined_connection do
-      #  def connection(), do: "amqp://guest:guest@localhost"
-      #end
+      unless @defined_connection do
+        def connection(), do: "amqp://guest:guest@localhost"
+      end
 
       def start_link do
         GenServer.start_link(__MODULE__, [], name: __MODULE__)
@@ -130,11 +146,9 @@ defmodule AmqpDsl do
             AMQP.Basic.qos(chan, prefetch_count: 10)
 
             # Register the GenServer process as a consumer
-            (0..@queue_count-1)
-            |> Enum.map(fn(i) -> queue_name(i) end)
-            |> Enum.map(fn(name) ->
-              {:ok, consumer_tag} = AMQP.Basic.consume(chan, name)
-              IO.puts "consumer_tag: #{consumer_tag}"
+            @queue_ids
+            |> Enum.map(fn(queue_id) ->
+              queue_init(chan, queue_id)
             end)
             {:ok, chan}
           {:error, _} ->
