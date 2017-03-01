@@ -36,16 +36,30 @@ defmodule AmqpDsl do
       @queue_id unquote(id)
       @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
       @queue_ids [@queue_id | @queue_ids]
+      @have_consume false
+
       unquote(clauses[:do])
+
+      def consume(@queue_id, channel, payload, tag) do
+        IO.puts "dont know how to route #{inspect payload}"
+      end
 
       def queue_init(channel, @queue_id) do
         AMQP.Queue.declare(channel, unquote(name), @queue_opts)
-        AMQP.Queue.subscribe(channel, unquote(name), fn(payload, %{delivery_tag: tag} = _meta) ->
-          consume(@queue_id, channel, payload, tag)
-        end)
+        if @have_consume do
+          AMQP.Queue.subscribe(channel, unquote(name), fn(payload, %{delivery_tag: tag} = _meta) ->
+            consume(@queue_id, channel, payload, tag)
+          end)
+        end
       end
       @queue_id nil
     end
+    |> inspect_code
+  end
+
+  def inspect_code(ast) do
+    IO.puts Macro.to_string(ast)
+    ast
   end
 
   @doc """
@@ -54,6 +68,7 @@ defmodule AmqpDsl do
   """
   defmacro on_receive(msg_var, [do: body]) do
     quote do
+      @have_consume true
       def consume(@queue_id, channel, unquote(msg_var) = message, tag) do
         unquote(msg_var) = message
         unquote(body)
@@ -182,16 +197,13 @@ defmodule AmqpDsl do
         {:noreply, chan}
       end
 
-      def handle_info({:basic_deliver, payload, %{delivery_tag: tag} = meta}, chan) do
-        payload = Poison.decode!(payload)
-        spawn fn ->
-          consume(chan, payload, tag)
-        end
-        {:noreply, chan}
+      def send_queue(queue, msg) do
+        GenServer.cast(__MODULE__, {:send_queue, queue, msg})
       end
 
-      def consume(channel, body, tag) do
-        IO.puts "dont know how to route #{inspect body}"
+      def handle_cast({:send_queue, queue, msg}, channel) do
+        AMQP.Basic.publish(channel, "", queue, msg)
+        {:noreply, channel}
       end
     end
   end
