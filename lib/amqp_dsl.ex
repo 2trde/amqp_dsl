@@ -32,8 +32,9 @@ defmodule AmqpDsl do
   """
   defmacro queue(name, clauses \\ []) do
     quote do
-      @queues_to_listen [unquote(name) | @queues_to_listen]
+      def queue_name(@queue_count), do: unquote(name)
       unquote(clauses[:do])
+      @queue_count @queue_count+1
     end
   end
 
@@ -106,13 +107,12 @@ defmodule AmqpDsl do
   """
   defmacro messaging([do: body]) do
     quote do
-      @queues_to_listen []
+      @queue_count 0
       unquote(body)
 
       #unless @defined_connection do
       #  def connection(), do: "amqp://guest:guest@localhost"
       #end
-
 
       def start_link do
         GenServer.start_link(__MODULE__, [], name: __MODULE__)
@@ -130,7 +130,8 @@ defmodule AmqpDsl do
             AMQP.Basic.qos(chan, prefetch_count: 10)
 
             # Register the GenServer process as a consumer
-            @queues_to_listen
+            (0..@queue_count-1)
+            |> Enum.map(fn(i) -> queue_name(i) end)
             |> Enum.map(fn(name) ->
               {:ok, consumer_tag} = AMQP.Basic.consume(chan, name)
               IO.puts "consumer_tag: #{consumer_tag}"
