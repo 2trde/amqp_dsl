@@ -22,10 +22,10 @@ defmodule Test.ReceiveTest do
     {:ok, pid} = ReceiveTest.start_link()
 
     :global.register_name(ReceiveTest, self)
-    AMQP.Basic.publish chan, "", "test_receive", "Hello, World!"
+    AMQP.Basic.publish chan, "", "test_receive", "{\"msg\": \"Hello, World!\"}"
     receive do
       {:message_received, msg} ->
-        assert msg == "Hello, World!"
+        assert msg == %{"msg" => "Hello, World!"}
     after
       500 -> raise "Failed"
     end

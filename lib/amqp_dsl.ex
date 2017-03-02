@@ -48,13 +48,13 @@ defmodule AmqpDsl do
         AMQP.Queue.declare(channel, unquote(name), @queue_opts)
         if @have_consume do
           AMQP.Queue.subscribe(channel, unquote(name), fn(payload, %{delivery_tag: tag} = _meta) ->
+            payload = Poison.decode!(payload)
             consume(@queue_id, channel, payload, tag)
           end)
         end
       end
       @queue_id nil
     end
-    |> inspect_code
   end
 
   def inspect_code(ast) do
@@ -77,6 +77,33 @@ defmodule AmqpDsl do
     end
   end
 
+  defmacro rpc_in(msg_var, request_queue_name, response_queue_name, [do: body]) do
+    id = "rpc_in:" <> Macro.to_string(request_queue_name)
+    quote do
+      @queue_id unquote(id)
+      @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
+      @queue_ids [@queue_id | @queue_ids]
+
+      def consume(@queue_id, channel, message, correlation_id, tag) do
+        unquote(msg_var) = message
+        result = unquote(body)
+        result = Poison.encode!(result)
+        AMQP.Basic.publish(channel, "", unquote(response_queue_name), result,
+                           correlation_id: correlation_id)
+        AMQP.Basic.ack(channel, tag)
+      end
+
+      def queue_init(channel, @queue_id) do
+        AMQP.Queue.subscribe(channel, unquote(request_queue_name), fn(payload, %{delivery_tag: tag, correlation_id: correlation_id} = _meta) ->
+          payload = Poison.decode!(payload)
+          consume(@queue_id, channel, payload, correlation_id, tag)
+        end)
+      end
+      @queue_id nil
+    end
+  end
+
+
   @doc """
   define an rpc call (outgoing). It allows to send to an queue and receive on a temporary
   queue the immediate response
@@ -90,7 +117,7 @@ defmodule AmqpDsl do
   This will define a bid method in the module that can be called with a message
   and it will return the answer message
   """
-  defmacro rpc(name, opts) do
+  defmacro rpc_out(name, request_queue, response_queue) do
     quote do
       def unquote(name)(msg) do
         GenServer.call(__MODULE__, {unquote(name), msg}, 3000)
@@ -98,10 +125,7 @@ defmodule AmqpDsl do
 
       def handle_call({unquote(name), msg}, _from, channel) do
         # queue for the response
-        resp_qname = unquote(opts[:response_queue])
-        req_qname = unquote(opts[:request_queue])
-        {:ok, %{queue: _}} = AMQP.Queue.declare(channel, resp_qname, exclusive: true)
-        AMQP.Basic.consume(channel, resp_qname, nil, no_ack: true)
+        AMQP.Basic.consume(channel, unquote(response_queue), nil, no_ack: true)
 
         msg = msg |> Poison.encode!()
 
@@ -109,8 +133,8 @@ defmodule AmqpDsl do
           :erlang.unique_integer() |> :erlang.integer_to_binary()
           |> Base.encode64()
 
-        AMQP.Basic.publish(channel, "", req_qname, msg,
-                           reply_to: resp_qname,
+        AMQP.Basic.publish(channel, "", unquote(request_queue), msg,
+                           reply_to: unquote(response_queue),
                            correlation_id: correlation_id)
 
         response =
@@ -125,12 +149,6 @@ defmodule AmqpDsl do
     end
   end
 
-  defmacro rpc_receive(name, request_queue, response_queue) do
-    quote do
-
-    end
-  end
-
 
   @doc """
   main macro to define messaging for a module. The module will become an GenServer and can be
@@ -139,6 +157,7 @@ defmodule AmqpDsl do
   defmacro messaging([do: body]) do
     quote do
       @queue_ids []
+      @defined_connection false
       unquote(body)
 
       unless @defined_connection do
@@ -162,6 +181,7 @@ defmodule AmqpDsl do
 
             # Register the GenServer process as a consumer
             @queue_ids
+            |> Enum.reverse
             |> Enum.map(fn(queue_id) ->
               queue_init(chan, queue_id)
             end)
@@ -169,7 +189,7 @@ defmodule AmqpDsl do
           {:error, _} ->
             # Reconnection loop
             :timer.sleep(5000)
-            rabbitmq_connect
+            rabbitmq_connect()
         end
       end
 
@@ -178,7 +198,7 @@ defmodule AmqpDsl do
       end
 
       def handle_info({:DOWN, _, :process, _pid, _reason}, _) do
-        {:ok, chan} = rabbitmq_connect
+        {:ok, chan} = rabbitmq_connect()
         {:noreply, chan}
       end
 
@@ -198,6 +218,7 @@ defmodule AmqpDsl do
       end
 
       def send_queue(queue, msg) do
+        Poison.encode!(msg)
         GenServer.cast(__MODULE__, {:send_queue, queue, msg})
       end
 

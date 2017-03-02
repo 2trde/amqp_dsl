@@ -30,7 +30,8 @@ defmodule AmqpDsl.Mixfile do
   defp deps do
     [
       {:amqp, "~> 0.2.0-pre.2"},
-      {:mock, "~> 0.2.0", only: :test}
+      {:mock, "~> 0.2.0", only: :test},
+      {:poison, "~> 2.0"},
     ]
   end
 end
