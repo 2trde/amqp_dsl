@@ -24,11 +24,11 @@ defmodule Test.SendTest do
       send test_pid, {:message_received, payload}
     end)
 
-    SendTest.send_queue("test_send", "Hello")
+    SendTest.send_queue("test_send", %{msg: "Hello"})
 
     receive do
       {:message_received, msg} ->
-        assert msg == "Hello"
+        assert Poison.decode!(msg) == %{"msg" => "Hello"}
     after
       500 -> raise "Failed"
     end

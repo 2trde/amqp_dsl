@@ -31,9 +31,9 @@ defmodule AmqpDsl do
   define a queue to be listened
   """
   defmacro queue(name, clauses \\ []) do
-    id = Macro.to_string(name)
     quote do
-      @queue_id unquote(id)
+      @queue_id @queue_count
+      @queue_count @queue_count+1
       @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
       @queue_ids [@queue_id | @queue_ids]
       @have_consume false
@@ -78,9 +78,9 @@ defmodule AmqpDsl do
   end
 
   defmacro rpc_in(msg_var, request_queue_name, response_queue_name, [do: body]) do
-    id = "rpc_in:" <> Macro.to_string(request_queue_name)
     quote do
-      @queue_id unquote(id)
+      @queue_id @queue_count
+      @queue_count @queue_count+1
       @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
       @queue_ids [@queue_id | @queue_ids]
 
@@ -90,7 +90,6 @@ defmodule AmqpDsl do
         result = Poison.encode!(result)
         AMQP.Basic.publish(channel, "", unquote(response_queue_name), result,
                            correlation_id: correlation_id)
-        AMQP.Basic.ack(channel, tag)
       end
 
       def queue_init(channel, @queue_id) do
@@ -124,25 +123,28 @@ defmodule AmqpDsl do
       end
 
       def handle_call({unquote(name), msg}, _from, channel) do
-        # queue for the response
-        AMQP.Basic.consume(channel, unquote(response_queue), nil, no_ack: true)
-
-        msg = msg |> Poison.encode!()
-
-        correlation_id =
-          :erlang.unique_integer() |> :erlang.integer_to_binary()
-          |> Base.encode64()
-
-        AMQP.Basic.publish(channel, "", unquote(request_queue), msg,
-                           reply_to: unquote(response_queue),
-                           correlation_id: correlation_id)
-
         response =
-          receive do
-            {:basic_deliver, payload, %{correlation_id: ^correlation_id}} ->
-              payload
-              |> Poison.decode!()
-          end
+          Task.async(fn() ->
+            # queue for the response
+            AMQP.Basic.consume(channel, unquote(response_queue), nil, no_ack: true)
+
+            msg = msg |> Poison.encode!()
+
+            correlation_id =
+              :erlang.unique_integer() |> :erlang.integer_to_binary()
+              |> Base.encode64()
+
+            AMQP.Basic.publish(channel, "", unquote(request_queue), msg,
+                               reply_to: unquote(response_queue),
+                               correlation_id: correlation_id)
+
+            receive do
+              {:basic_deliver, payload, %{correlation_id: ^correlation_id}} ->
+                payload
+                |> Poison.decode!()
+            end
+          end)
+          |> Task.await
 
         {:reply, response, channel}
       end
@@ -157,6 +159,7 @@ defmodule AmqpDsl do
   defmacro messaging([do: body]) do
     quote do
       @queue_ids []
+      @queue_count 0
       @defined_connection false
       unquote(body)
 
@@ -223,6 +226,7 @@ defmodule AmqpDsl do
       end
 
       def handle_cast({:send_queue, queue, msg}, channel) do
+        msg = Poison.encode!(msg)
         AMQP.Basic.publish(channel, "", queue, msg)
         {:noreply, channel}
       end

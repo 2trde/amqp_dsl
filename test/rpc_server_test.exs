@@ -25,17 +25,15 @@ defmodule Test.RpcServerTest do
 
     me = self()
 
-    AMQP.Basic.publish chan, "", "test_rpc_request", "{\"msg\": \"Hello, World!\"}"
-    AMQP.Queue.subscribe(chan, "test_rpc_response", fn(payload, _) ->
+    (1..100)
+    |> Enum.each(fn(_) ->
+      AMQP.Basic.publish chan, "", "test_rpc_request", "{\"msg\": \"Hello, World! 1\"}"
+    end)
+    AMQP.Queue.subscribe(chan, "test_rpc_response", fn(payload, %{delivery_tag: tag}) ->
       send me, {:message_received, Poison.decode!(payload)}
     end)
 
-    receive do
-      {:message_received, msg} ->
-        assert msg == %{"response" => "received Hello, World!"}
-    after
-      20000 -> raise "Failed"
-    end
+    assert_receive {:message_received, %{"response" => "received Hello, World! 1"}}, 100
   end
 end
 

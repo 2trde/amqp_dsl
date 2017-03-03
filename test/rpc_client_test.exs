@@ -6,7 +6,6 @@ defmodule RpcClientTestServer do
     queue "test_rpc_response"
 
     rpc_in(msg, "test_rpc_request", "test_rpc_response") do
-      #%{response: "received #{msg["msg"]}"}
       %{response: "received #{msg["msg"]}"}
     end
   end
@@ -36,8 +35,11 @@ defmodule Test.RpcClientTest do
     {:ok, _pid} = RpcClientTest.start_link()
     {:ok, _pid} = RpcClientTestServer.start_link()
 
-    result = RpcClientTest.bid(%{msg: "hello"})
-    assert result == %{"response" => "received hello"}
+    (1..100)
+    |> Enum.each(fn(i) ->
+      result = RpcClientTest.bid(%{msg: "hello #{i}"})
+      assert result == %{"response" => "received hello #{i}"}
+    end)
   end
 end
 
