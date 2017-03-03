@@ -72,7 +72,6 @@ defmodule AmqpDsl do
       def consume(@queue_id, channel, unquote(msg_var) = message, tag) do
         unquote(msg_var) = message
         unquote(body)
-        AMQP.Basic.ack channel, tag
       end
     end
   end

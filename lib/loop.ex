@@ -7,7 +7,8 @@ defmodule AmqpDsl.Loop do
   end
 
   defmacro loop_list(list, [do: block]) do
-    list
+    {result, _binding} = Code.eval_quoted(list)
+    result
     |> Enum.reduce(nil, fn(x, acc) ->
       quote do
         unquote(acc)
