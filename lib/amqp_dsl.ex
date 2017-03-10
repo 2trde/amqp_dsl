@@ -150,6 +150,18 @@ defmodule AmqpDsl do
     end
   end
 
+  defmacro out(name, opts) do
+    if opts[:to_queue] do
+      quote do
+        def unquote(name)(message) do
+          send_queue(unquote(opts[:to_queue]), message)
+        end
+      end
+    else
+      raise "out expects to_queue parameter"
+    end
+  end
+
 
   @doc """
   main macro to define messaging for a module. The module will become an GenServer and can be
