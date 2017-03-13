@@ -47,10 +47,13 @@ defmodule AmqpDsl do
       def queue_init(channel, @queue_id) do
         AMQP.Queue.declare(channel, unquote(name), @queue_opts)
         if @have_consume do
-          AMQP.Queue.subscribe(channel, unquote(name), fn(payload, %{delivery_tag: tag} = _meta) ->
-            payload = Poison.decode!(payload)
-            consume(@queue_id, channel, payload, tag)
-          end)
+          consumer_pid = spawn fn ->
+            do_start_consumer(channel, fn(payload, %{delivery_tag: tag} = meta) ->
+              payload = Poison.decode!(payload)
+              consume(@queue_id, channel, payload, tag)
+            end)
+          end
+          AMQP.Basic.consume(channel, unquote(name), consumer_pid)
         end
       end
       @queue_id nil
@@ -92,10 +95,13 @@ defmodule AmqpDsl do
       end
 
       def queue_init(channel, @queue_id) do
-        AMQP.Queue.subscribe(channel, unquote(request_queue_name), fn(payload, %{delivery_tag: tag, correlation_id: correlation_id} = _meta) ->
-          payload = Poison.decode!(payload)
-          consume(@queue_id, channel, payload, correlation_id, tag)
-        end)
+        consumer_pid = spawn fn ->
+          do_start_consumer(channel, fn(payload, %{delivery_tag: tag, correlation_id: correlation_id} = meta) ->
+            payload = Poison.decode!(payload)
+            consume(@queue_id, channel, payload, correlation_id, tag)
+          end)
+        end
+        AMQP.Basic.consume(channel, unquote(request_queue_name), consumer_pid)
       end
       @queue_id nil
     end
@@ -240,6 +246,32 @@ defmodule AmqpDsl do
         msg = Poison.encode!(msg)
         AMQP.Basic.publish(channel, "", queue, msg)
         {:noreply, channel}
+      end
+
+      defp do_consume(channel, fun, consumer_tag) do
+        receive do
+          {:basic_deliver, payload, %{delivery_tag: delivery_tag} = meta} ->
+            try do
+              fun.(payload, meta)
+              AMQP.Basic.ack(channel, delivery_tag)
+            rescue
+              exception ->
+                stacktrace = System.stacktrace
+                AMQP.Basic.reject(channel, delivery_tag, requeue: false)
+            end
+            do_consume(channel, fun, consumer_tag)
+          {:basic_cancel, %{consumer_tag: ^consumer_tag, no_wait: _}} ->
+            exit(:basic_cancel)
+          {:basic_cancel_ok, %{consumer_tag: ^consumer_tag}} ->
+            exit(:normal)
+        end
+      end
+
+      defp do_start_consumer(channel, fun) do
+        receive do
+          {:basic_consume_ok, %{consumer_tag: consumer_tag}} ->
+            do_consume(channel, fun, consumer_tag)
+        end
       end
     end
   end

@@ -5,6 +5,7 @@ defmodule ReceiveTest do
     queue "test_receive" do
       on_receive(msg) do
         :global.send(ReceiveTest, {:message_received, msg})
+        raise "bang"
       end
     end
   end
@@ -23,11 +24,10 @@ defmodule Test.ReceiveTest do
 
     :global.register_name(ReceiveTest, self)
     AMQP.Basic.publish chan, "", "test_receive", "{\"msg\": \"Hello, World!\"}"
-    receive do
-      {:message_received, msg} ->
-        assert msg == %{"msg" => "Hello, World!"}
-    after
-      500 -> raise "Failed"
-    end
+    AMQP.Basic.publish chan, "", "test_receive", "{\"msg\": \"Hello, World!\"}"
+    assert_receive {:message_received, msg}, 500
+    assert msg == %{"msg" => "Hello, World!"}
+    assert_receive {:message_received, msg}, 500
+    assert msg == %{"msg" => "Hello, World!"}
   end
 end
