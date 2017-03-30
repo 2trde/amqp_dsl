@@ -242,11 +242,6 @@ defmodule AmqpDsl do
             @bindings
             |> Enum.reverse
             |> Enum.map(fn({queue, exchange, options }) ->
-              IO.puts "************** binding"
-              IO.puts "chan: #{inspect chan}"
-              IO.puts "queue: #{inspect queue}"
-              IO.puts "exchange: #{inspect exchange}"
-              IO.puts "options: #{inspect options}"
               AMQP.Queue.bind(chan, queue, exchange, options)
             end)
 
