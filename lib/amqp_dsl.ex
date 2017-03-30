@@ -200,7 +200,10 @@ defmodule AmqpDsl do
       @defined_connection false
       @exchanges []
       @bindings []
+
       unquote(body)
+
+      def queue_init(_, _), do: raise "default impl of queue_init should never be called!"
 
       unless @defined_connection do
         def connection(), do: "amqp://guest:guest@localhost"
