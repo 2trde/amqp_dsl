@@ -2,21 +2,25 @@ defmodule SendTest do
   use AmqpDsl
 
   messaging do
+    exchange "test_exchange", :topic
+
     queue "test_send" do
+      bind "test_exchange", routing_key: "bla"
     end
 
-    out :sample_send, to_queue: "test_send"
+    out :sample_send, to_exchange: "test_exchange", routing_key: "bla"
   end
 end
 
-defmodule Test.SendTest do
+defmodule Test.ExchangeTest do
   use ExUnit.Case
   doctest AmqpDsl
 
   test "test receive msg from queue" do
     {:ok, conn} = AMQP.Connection.open
     {:ok, chan} = AMQP.Channel.open(conn)
-    AMQP.Queue.delete(chan, "test_receive")
+    AMQP.Queue.delete(chan, "test_send")
+    AMQP.Exchange.delete(chan, "test_exchange")
 
     {:ok, pid} = SendTest.start_link()
 
@@ -34,6 +38,5 @@ defmodule Test.SendTest do
     after
       500 -> raise "Failed"
     end
-    Process.exit(pid, :normal)
   end
 end

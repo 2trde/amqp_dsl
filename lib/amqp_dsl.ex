@@ -27,6 +27,18 @@ defmodule AmqpDsl do
     end
   end
 
+  defmacro exchange(name, type, options \\ []) do
+    quote do
+      @exchanges [{unquote(name), unquote(type), unquote(options)} | @exchanges]
+    end
+  end
+
+  defmacro bind(exchange, options) do
+    quote do
+      @bindings [{@current_queue_name, unquote(exchange), unquote(options)}]
+    end
+  end
+
   @doc """
   define a queue to be listened
   """
@@ -37,6 +49,7 @@ defmodule AmqpDsl do
       @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
       @queue_ids [@queue_id | @queue_ids]
       @have_consume false
+      @current_queue_name unquote(name)
 
       unquote(clauses[:do])
 
@@ -157,14 +170,21 @@ defmodule AmqpDsl do
   end
 
   defmacro out(name, opts) do
-    if opts[:to_queue] do
-      quote do
-        def unquote(name)(message) do
-          send_queue(unquote(opts[:to_queue]), message)
+    cond do
+      opts[:to_queue] ->
+        quote do
+          def unquote(name)(message) do
+            send_queue(unquote(opts[:to_queue]), message)
+          end
         end
-      end
-    else
-      raise "out expects to_queue parameter"
+      opts[:to_exchange] ->
+        quote do
+          def unquote(name)(message, key \\ unquote(opts[:routing_key]) ) do
+            send_exchange(unquote(opts[:to_exchange]), key, message)
+          end
+        end
+      true ->
+        raise "out expects to_queue parameter"
     end
   end
 
@@ -178,6 +198,8 @@ defmodule AmqpDsl do
       @queue_ids []
       @queue_count 0
       @defined_connection false
+      @exchanges []
+      @bindings []
       unquote(body)
 
       unless @defined_connection do
@@ -199,12 +221,32 @@ defmodule AmqpDsl do
             # Limit unacknowledged messages to 10
             AMQP.Basic.qos(chan, prefetch_count: 10)
 
+            @exchanges
+            |> Enum.reverse
+            |> Enum.map(fn({name, type, options}) ->
+              IO.puts "declaring exchange #{name} with type #{inspect type}"
+              AMQP.Exchange.declare(chan, name, type, options)
+            end)
+
+
             # Register the GenServer process as a consumer
             @queue_ids
             |> Enum.reverse
             |> Enum.map(fn(queue_id) ->
               queue_init(chan, queue_id)
             end)
+
+            @bindings
+            |> Enum.reverse
+            |> Enum.map(fn({queue, exchange, options }) ->
+              IO.puts "************** binding"
+              IO.puts "chan: #{inspect chan}"
+              IO.puts "queue: #{inspect queue}"
+              IO.puts "exchange: #{inspect exchange}"
+              IO.puts "options: #{inspect options}"
+              AMQP.Queue.bind(chan, queue, exchange, options)
+            end)
+
             {:ok, chan}
           {:error, _} ->
             # Reconnection loop
@@ -239,12 +281,18 @@ defmodule AmqpDsl do
 
       def send_queue(queue, msg) do
         Poison.encode!(msg)
-        GenServer.cast(__MODULE__, {:send_queue, queue, msg})
+        GenServer.cast(__MODULE__, {:send_exchange, "", queue, msg})
       end
 
-      def handle_cast({:send_queue, queue, msg}, channel) do
+      def send_exchange(exchange, key, msg) do
+        Poison.encode!(msg)
+        GenServer.cast(__MODULE__, {:send_exchange, exchange, key, msg})
+      end
+
+      def handle_cast({:send_exchange, exchange, key, msg}, channel) do
         msg = Poison.encode!(msg)
-        AMQP.Basic.publish(channel, "", queue, msg)
+        IO.puts "sendint to exhange '#{exchange}' with key '#{key}'"
+        AMQP.Basic.publish(channel, exchange, key, msg)
         {:noreply, channel}
       end
 

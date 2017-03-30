@@ -34,6 +34,7 @@ defmodule Test.RpcServerTest do
     end)
 
     assert_receive {:message_received, %{"response" => "received Hello, World! 1"}}, 100
+    Process.exit(pid, :normal)
   end
 end
 
