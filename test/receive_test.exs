@@ -2,7 +2,7 @@ defmodule ReceiveTest do
   use AmqpDsl
 
   messaging do
-    queue "test_receive" do
+    queue "test_receive", durable: true do
       on_receive("test_receive_fake", msg) do
       end
       on_receive("test_receive", msg) do

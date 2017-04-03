@@ -47,14 +47,18 @@ defmodule AmqpDsl do
 
   defmacro bind(exchange, options) do
     quote do
-      @bindings [{@current_queue_name, unquote(exchange), unquote(options)}]
+      @bindings [{@current_queue_name, unquote(exchange), unquote(options)} | @bindings]
     end
   end
 
   @doc """
   define a queue to be listened
   """
-  defmacro queue(name, clauses \\ []) do
+  defmacro queue(name, opts \\ [], clauses \\ []) do
+    {opts, clauses} = case {opts, clauses} do
+      {[do: _], []} -> {[], opts}
+      _ -> {opts, clauses}
+    end
     quote do
       @queue_id @queue_count
       @queue_count @queue_count+1
@@ -70,7 +74,8 @@ defmodule AmqpDsl do
       end
 
       def queue_init(channel, @queue_id) do
-        AMQP.Queue.declare(channel, unquote(name), @queue_opts)
+        AMQP.Queue.declare(channel, unquote(name), Keyword.merge(@queue_opts, unquote(opts)))
+        #AMQP.Queue.declare(channel, unquote(name), @queue_opts)
         if @have_consume do
           consumer_pid = spawn_link fn ->
             do_start_consumer(channel, fn(payload, %{delivery_tag: tag, routing_key: routing_key} = meta) ->
