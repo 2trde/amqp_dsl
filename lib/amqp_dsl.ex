@@ -27,6 +27,18 @@ defmodule AmqpDsl do
     end
   end
 
+  defmacro on_error(error, payload, meta, [do: body]) do
+    quote do
+      @has_error_handler true
+      def on_error(error, payload, meta) do
+        unquote(error) = error
+        unquote(payload) = payload
+        unquote(meta) = meta
+        unquote(body)
+      end
+    end
+  end
+
   defmacro exchange(name, type, options \\ []) do
     quote do
       @exchanges [{unquote(name), unquote(type), unquote(options)} | @exchanges]
@@ -60,7 +72,7 @@ defmodule AmqpDsl do
       def queue_init(channel, @queue_id) do
         AMQP.Queue.declare(channel, unquote(name), @queue_opts)
         if @have_consume do
-          consumer_pid = spawn fn ->
+          consumer_pid = spawn_link fn ->
             do_start_consumer(channel, fn(payload, %{delivery_tag: tag, routing_key: routing_key} = meta) ->
               payload = Poison.decode!(payload)
               consume(@queue_id, channel, routing_key, payload, tag)
@@ -311,7 +323,12 @@ defmodule AmqpDsl do
               AMQP.Basic.ack(channel, delivery_tag)
             rescue
               exception ->
-                stacktrace = System.stacktrace
+                if @has_error_handler do
+                  IO.puts "adding apply for #{inspect __MODULE__}"
+                  apply(__MODULE__, :on_error, [exception , payload, meta])
+                else
+                  IO.puts "error receiving message: #{inspect exception} for payload #{inspect payload}"
+                end
                 AMQP.Basic.reject(channel, delivery_tag, requeue: false)
             end
             do_consume(channel, fun, consumer_tag)
