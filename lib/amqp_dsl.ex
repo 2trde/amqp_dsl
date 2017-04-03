@@ -82,19 +82,19 @@ defmodule AmqpDsl do
   define a on receive block. The first parameter can pattern match on the json message.
   So you can define multiple blocks
   """
-  defmacro on_receive(msg_var, [do: body]) do
+  defmacro on_receive(routing_key, msg_var, [do: body]) do
     quote do
       @have_consume true
-      def consume(@queue_id, channel, _, unquote(msg_var) = message, tag) do
+      def consume(@queue_id, channel, unquote(routing_key), unquote(msg_var) = message, tag) do
         unquote(msg_var) = message
         unquote(body)
       end
     end
   end
-  defmacro on_receive(routing_key, msg_var, [do: body]) do
+  defmacro on_receive(msg_var, [do: body]) do
     quote do
       @have_consume true
-      def consume(@queue_id, channel, routing_key, unquote(msg_var) = message, tag) do
+      def consume(@queue_id, channel, _, unquote(msg_var) = message, tag) do
         unquote(msg_var) = message
         unquote(body)
       end
