@@ -53,7 +53,7 @@ defmodule AmqpDsl do
 
       unquote(clauses[:do])
 
-      def consume(@queue_id, channel, payload, tag) do
+      def consume(@queue_id, _channel, _routing_key, payload, tag) do
         IO.puts "dont know how to route #{inspect payload}"
       end
 
@@ -61,9 +61,9 @@ defmodule AmqpDsl do
         AMQP.Queue.declare(channel, unquote(name), @queue_opts)
         if @have_consume do
           consumer_pid = spawn fn ->
-            do_start_consumer(channel, fn(payload, %{delivery_tag: tag} = meta) ->
+            do_start_consumer(channel, fn(payload, %{delivery_tag: tag, routing_key: routing_key} = meta) ->
               payload = Poison.decode!(payload)
-              consume(@queue_id, channel, payload, tag)
+              consume(@queue_id, channel, routing_key, payload, tag)
             end)
           end
           AMQP.Basic.consume(channel, unquote(name), consumer_pid)
@@ -85,7 +85,16 @@ defmodule AmqpDsl do
   defmacro on_receive(msg_var, [do: body]) do
     quote do
       @have_consume true
-      def consume(@queue_id, channel, unquote(msg_var) = message, tag) do
+      def consume(@queue_id, channel, _, unquote(msg_var) = message, tag) do
+        unquote(msg_var) = message
+        unquote(body)
+      end
+    end
+  end
+  defmacro on_receive(routing_key, msg_var, [do: body]) do
+    quote do
+      @have_consume true
+      def consume(@queue_id, channel, routing_key, unquote(msg_var) = message, tag) do
         unquote(msg_var) = message
         unquote(body)
       end
@@ -99,7 +108,7 @@ defmodule AmqpDsl do
       @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
       @queue_ids [@queue_id | @queue_ids]
 
-      def consume(@queue_id, channel, message, correlation_id, tag) do
+      def consume(@queue_id, channel, _, message, correlation_id, tag) do
         unquote(msg_var) = message
         result = unquote(body)
         result = Poison.encode!(result)
@@ -109,9 +118,9 @@ defmodule AmqpDsl do
 
       def queue_init(channel, @queue_id) do
         consumer_pid = spawn fn ->
-          do_start_consumer(channel, fn(payload, %{delivery_tag: tag, correlation_id: correlation_id} = meta) ->
+          do_start_consumer(channel, fn(payload, %{delivery_tag: tag, correlation_id: correlation_id, routing_key: routing_key} = meta) ->
             payload = Poison.decode!(payload)
-            consume(@queue_id, channel, payload, correlation_id, tag)
+            consume(@queue_id, channel, routing_key, payload, correlation_id, tag)
           end)
         end
         AMQP.Basic.consume(channel, unquote(request_queue_name), consumer_pid)
