@@ -269,6 +269,7 @@ defmodule AmqpDsl do
 
       def queue_init(_, _), do: raise "default impl of queue_init should never be called!"
 
+      def queue_name(nil), do: raise "invalid queue id"
       def exchange_name_for_binding(nil), do: raise "invalid binding id"
 
       unless @defined_connection do
