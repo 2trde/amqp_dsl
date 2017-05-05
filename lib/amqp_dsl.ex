@@ -47,7 +47,14 @@ defmodule AmqpDsl do
 
   defmacro bind(exchange, options) do
     quote do
-      @bindings [{@current_queue_name, unquote(exchange), unquote(options)} | @bindings]
+      @binding_id @binding_count || 1
+      @binding_count @binding_id+1
+
+      def exchange_name_for_binding(@binding_id) do
+        unquote(exchange)
+      end
+
+      @bindings [{@queue_id, @binding_id, unquote(options)} | @bindings]
     end
   end
 
@@ -65,9 +72,13 @@ defmodule AmqpDsl do
       @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
       @queue_ids [@queue_id | @queue_ids]
       @have_consume false
-      @current_queue_name unquote(name)
+      #@current_queue_name unquote(name)
 
       unquote(clauses[:do])
+
+      def queue_name(@queue_id) do
+        unquote(name)
+      end
 
       def consume(@queue_id, _channel, _routing_key, payload, tag) do
         IO.puts "dont know how to route #{inspect payload}"
@@ -231,6 +242,8 @@ defmodule AmqpDsl do
 
       def queue_init(_, _), do: raise "default impl of queue_init should never be called!"
 
+      def exchange_name_for_binding(nil), do: raise "invalid binding id"
+
       unless @defined_connection do
         def connection(), do: "amqp://guest:guest@localhost"
       end
@@ -267,8 +280,8 @@ defmodule AmqpDsl do
 
             @bindings
             |> Enum.reverse
-            |> Enum.map(fn({queue, exchange, options }) ->
-              AMQP.Queue.bind(chan, queue, exchange, options)
+            |> Enum.map(fn({queue, binding_id, options }) ->
+              AMQP.Queue.bind(chan, queue_name(queue), exchange_name_for_binding(binding_id), options)
             end)
 
             {:ok, chan}

@@ -1,11 +1,14 @@
 defmodule SendTest do
   use AmqpDsl
 
+  def queue_name(), do: "test_send"
+  def exchange_name(), do: "test_exchange"
+
   messaging do
     exchange "test_exchange", :topic
 
-    queue "test_send" do
-      bind "test_exchange", routing_key: "bla"
+    queue queue_name() do
+      bind exchange_name, routing_key: "bla"
     end
 
     out :sample_send, to_exchange: "test_exchange", routing_key: "bla"
