@@ -110,19 +110,46 @@ defmodule AmqpDsl do
   define a on receive block. The first parameter can pattern match on the json message.
   So you can define multiple blocks
   """
-  defmacro on_receive(routing_key, msg_var, [do: body]) do
-    quote do
-      @have_consume true
-      def consume(@queue_id, channel, unquote(routing_key), unquote(msg_var) = message, tag) do
-        unquote(msg_var) = message
-        unquote(body)
+  #defmacro on_receive(routing_key, msg_var, [do: body]) do
+  #  quote do
+  #    @have_consume true
+  #    def consume(@queue_id, channel, unquote(routing_key), unquote(msg_var) = message, tag) do
+  #      unquote(msg_var) = message
+  #      unquote(body)
+  #    end
+  #  end
+  #end
+  defmacro on_receive(msg_var, opts \\ [], [do: body]) when is_list(opts) do
+    load_schema = if Keyword.has_key?(opts, :validate_json) do
+      quote do
+        @schema File.read!(unquote(opts[:validate_json])) |> Poison.decode!() |> ExJsonSchema.Schema.resolve()
       end
     end
-  end
-  defmacro on_receive(msg_var, [do: body]) do
+
+    routing_key = if Keyword.has_key?(opts, :routing_key) do
+      opts[:routing_key]
+    else
+      quote do
+        _
+      end
+    end
+
     quote do
+      unquote(load_schema)
+
       @have_consume true
-      def consume(@queue_id, channel, _, unquote(msg_var) = message, tag) do
+      def consume(@queue_id, channel, unquote(routing_key), unquote(msg_var) = message, tag) do
+        if unquote(opts[:validate_json]) do
+          #ExJsonSchema.Validator.validate(unquote(opts[:validate_json]), message)
+          IO.inspect message
+          ExJsonSchema.Validator.validate(@schema, message)
+          |> case do
+            {:error, error} ->
+              raise inspect(error)
+            :ok ->
+              :ok
+          end
+        end
         unquote(msg_var) = message
         unquote(body)
       end

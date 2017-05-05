@@ -3,14 +3,14 @@ defmodule ReceiveTest do
 
   messaging do
     queue "test_receive", durable: true do
-      on_receive("test_receive_fake", msg) do
+      on_receive(msg, routing_key: "test_receive_fake") do
       end
-      on_receive("test_receive", msg) do
+      on_receive(msg, routing_key: "test_receive") do
         IO.puts "routing key received"
         :global.send(ReceiveTest, {:message_received, msg})
         raise "bang"
       end
-      on_receive("test_receive_invalid", msg) do
+      on_receive(msg, routing_key: "test_receive_invalid") do
       end
     end
   end

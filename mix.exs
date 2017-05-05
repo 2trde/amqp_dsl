@@ -32,6 +32,7 @@ defmodule AmqpDsl.Mixfile do
       {:amqp, "~> 0.2.0-pre.2"},
       {:mock, "~> 0.2.0", only: :test},
       {:poison, "~> 2.0"},
+      {:ex_json_schema, "~> 0.5.4"}
     ]
   end
 end

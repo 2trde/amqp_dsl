@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+
+  "title": "Sample schema",
+  "description": "",
+
+  "type": "object",
+  "required": ["name", "age"],
+
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "name"
+    },
+    "age":    {
+      "type": "integer",
+      "description": "age"
+    }
+  }
+}
