@@ -134,20 +134,25 @@ defmodule AmqpDsl do
       end
     end
 
+
+    validate_json = if opts[:validate_json] do
+      quote do
+        ExJsonSchema.Validator.validate(@schema, message)
+        |> case do
+          {:error, error} ->
+            raise inspect(error)
+          :ok ->
+            :ok
+        end
+      end
+    end
+
     quote do
       unquote(load_schema)
 
       @have_consume true
       def consume(@queue_id, channel, unquote(routing_key), message, tag) do
-        if unquote(opts[:validate_json]) do
-          ExJsonSchema.Validator.validate(@schema, message)
-          |> case do
-            {:error, error} ->
-              raise inspect(error)
-            :ok ->
-              :ok
-          end
-        end
+        unquote(validate_json)
         unquote(msg_var) = message
         unquote(body)
       end
