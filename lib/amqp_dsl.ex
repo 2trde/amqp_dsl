@@ -47,7 +47,7 @@ defmodule AmqpDsl do
 
   defmacro bind(exchange, options) do
     quote do
-      @binding_id @binding_count || 1
+      @binding_id @binding_count
       @binding_count @binding_id+1
 
       def exchange_name_for_binding(@binding_id) do
@@ -67,6 +67,7 @@ defmodule AmqpDsl do
       _ -> {opts, clauses}
     end
     quote do
+      @binding_count 1
       @queue_id @queue_count
       @queue_count @queue_count+1
       @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
