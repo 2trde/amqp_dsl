@@ -268,6 +268,8 @@ defmodule AmqpDsl do
       @defined_connection false
       @exchanges []
       @bindings []
+      @has_error_handler false
+
 
       unquote(body)
 
