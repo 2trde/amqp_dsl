@@ -138,10 +138,8 @@ defmodule AmqpDsl do
       unquote(load_schema)
 
       @have_consume true
-      def consume(@queue_id, channel, unquote(routing_key), unquote(msg_var) = message, tag) do
+      def consume(@queue_id, channel, unquote(routing_key), message, tag) do
         if unquote(opts[:validate_json]) do
-          #ExJsonSchema.Validator.validate(unquote(opts[:validate_json]), message)
-          IO.inspect message
           ExJsonSchema.Validator.validate(@schema, message)
           |> case do
             {:error, error} ->
