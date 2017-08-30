@@ -152,9 +152,8 @@ defmodule AmqpDsl do
       unquote(load_schema)
 
       @have_consume true
-      def consume(@queue_id, channel, unquote(routing_key), message, tag) do
+      def consume(@queue_id, channel, unquote(routing_key), unquote(msg_var) = message, tag) do
         unquote(validate_json)
-        unquote(msg_var) = message
         unquote(body)
       end
     end
