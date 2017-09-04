@@ -111,15 +111,6 @@ defmodule AmqpDsl do
   define a on receive block. The first parameter can pattern match on the json message.
   So you can define multiple blocks
   """
-  #defmacro on_receive(routing_key, msg_var, [do: body]) do
-  #  quote do
-  #    @have_consume true
-  #    def consume(@queue_id, channel, unquote(routing_key), unquote(msg_var) = message, tag) do
-  #      unquote(msg_var) = message
-  #      unquote(body)
-  #    end
-  #  end
-  #end
   defmacro on_receive(msg_var, opts \\ [], [do: body]) when is_list(opts) do
     load_schema = if Keyword.has_key?(opts, :validate_json) do
       quote do
@@ -155,83 +146,6 @@ defmodule AmqpDsl do
       def consume(@queue_id, channel, unquote(routing_key), unquote(msg_var) = message, tag) do
         unquote(validate_json)
         unquote(body)
-      end
-    end
-  end
-
-  defmacro rpc_in(msg_var, request_queue_name, response_queue_name, [do: body]) do
-    quote do
-      @queue_id @queue_count
-      @queue_count @queue_count+1
-      @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
-      @queue_ids [@queue_id | @queue_ids]
-
-      def consume(@queue_id, channel, _, message, correlation_id, tag) do
-        unquote(msg_var) = message
-        result = unquote(body)
-        result = Poison.encode!(result)
-        AMQP.Basic.publish(channel, "", unquote(response_queue_name), result,
-                           correlation_id: correlation_id)
-      end
-
-      def queue_init(channel, @queue_id) do
-        consumer_pid = spawn fn ->
-          do_start_consumer(channel, fn(payload, %{delivery_tag: tag, correlation_id: correlation_id, routing_key: routing_key} = meta) ->
-            payload = Poison.decode!(payload)
-            consume(@queue_id, channel, routing_key, payload, correlation_id, tag)
-          end)
-        end
-        AMQP.Basic.consume(channel, unquote(request_queue_name), consumer_pid)
-      end
-      @queue_id nil
-    end
-  end
-
-
-  @doc """
-  define an rpc call (outgoing). It allows to send to an queue and receive on a temporary
-  queue the immediate response
-
-  ## Example
-
-  messaging do
-    rpc :bid, request_queue: "my_requests", response_queue: "my_responses"
-  end
-
-  This will define a bid method in the module that can be called with a message
-  and it will return the answer message
-  """
-  defmacro rpc_out(name, request_queue, response_queue) do
-    quote do
-      def unquote(name)(msg) do
-        GenServer.call(__MODULE__, {unquote(name), msg}, 3000)
-      end
-
-      def handle_call({unquote(name), msg}, _from, channel) do
-        response =
-          Task.async(fn() ->
-            # queue for the response
-            AMQP.Basic.consume(channel, unquote(response_queue), nil, no_ack: true)
-
-            msg = msg |> Poison.encode!()
-
-            correlation_id =
-              :erlang.unique_integer() |> :erlang.integer_to_binary()
-              |> Base.encode64()
-
-            AMQP.Basic.publish(channel, "", unquote(request_queue), msg,
-                               reply_to: unquote(response_queue),
-                               correlation_id: correlation_id)
-
-            receive do
-              {:basic_deliver, payload, %{correlation_id: ^correlation_id}} ->
-                payload
-                |> Poison.decode!()
-            end
-          end)
-          |> Task.await
-
-        {:reply, response, channel}
       end
     end
   end
