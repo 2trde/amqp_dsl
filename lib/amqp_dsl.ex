@@ -67,7 +67,6 @@ defmodule AmqpDsl do
       _ -> {opts, clauses}
     end
     quote do
-      @binding_count 1
       @queue_id @queue_count
       @queue_count @queue_count+1
       @queue_opts [passive: false, durable: true, exclusive: false, auto_delete: false, no_wait: false]
@@ -176,6 +175,7 @@ defmodule AmqpDsl do
   """
   defmacro messaging([do: body]) do
     quote do
+      @binding_count 1
       @queue_ids []
       @queue_count 0
       @defined_connection false
