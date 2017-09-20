@@ -265,19 +265,19 @@ defmodule AmqpDsl do
 
       def send_queue(queue, msg) do
         Poison.encode!(msg)
-        GenServer.cast(__MODULE__, {:send_exchange, "", queue, msg})
+        GenServer.call(__MODULE__, {:send_exchange, "", queue, msg})
       end
 
       def send_exchange(exchange, key, msg) do
         Poison.encode!(msg)
-        GenServer.cast(__MODULE__, {:send_exchange, exchange, key, msg})
+        GenServer.call(__MODULE__, {:send_exchange, exchange, key, msg})
       end
 
-      def handle_cast({:send_exchange, exchange, key, msg}, channel) do
+      def handle_call({:send_exchange, exchange, key, msg}, _from, channel) do
         msg = Poison.encode!(msg)
         IO.puts "sendint to exhange '#{exchange}' with key '#{key}'"
-        AMQP.Basic.publish(channel, exchange, key, msg)
-        {:noreply, channel}
+        result = AMQP.Basic.publish(channel, exchange, key, msg)
+        {:reply, result, channel}
       end
 
       defp do_consume(channel, fun, consumer_tag) do
