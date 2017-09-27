@@ -294,7 +294,8 @@ defmodule AmqpDsl do
                 else
                   IO.puts "error receiving message: #{inspect exception} for payload #{inspect payload}"
                 end
-                AMQP.Basic.reject(channel, delivery_tag, requeue: false)
+                # we will requeue the messages once (not redilivered before)
+                AMQP.Basic.reject(channel, delivery_tag, requeue: !meta.redelivered)
             end
             do_consume(channel, fun, consumer_tag)
           {:basic_cancel, %{consumer_tag: ^consumer_tag, no_wait: _}} ->
