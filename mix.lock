@@ -1,7 +1,8 @@
-%{"amqp": {:hex, :amqp, "0.2.0-pre.2", "01863a61a5db3a370a5d1668e4730669962f204de19f6e915a07550f16c3d3f9", [:mix], [{:amqp_client, "~> 3.6.7-pre.1", [hex: :amqp_client, optional: false]}, {:rabbit_common, "~> 3.6.7-pre.1", [hex: :rabbit_common, optional: false]}]},
-  "amqp_client": {:hex, :amqp_client, "3.6.7-pre.1", "5d689656443cf652a0114806e7e2f5c63ceac4d768382ffa08570a246f0e8eaf", [:make, :rebar3], [{:rabbit_common, "3.6.7-pre.1", [hex: :rabbit_common, optional: false]}]},
+%{"amqp": {:hex, :amqp, "0.3.0", "45c26acbc63507e4bf7fe9b2e7e32733dcf478a1695439baedc4690722b652d1", [:mix], [{:amqp_client, "~> 3.6.8", [hex: :amqp_client, optional: false]}, {:rabbit_common, "~> 3.6.8", [hex: :rabbit_common, optional: false]}]},
+  "amqp_client": {:hex, :amqp_client, "3.6.14", "523c4a84d7cab9ce19e1ba17274c87f10627e6539735c1f26dfe5ce2d5aad75d", [:make, :rebar3], [{:rabbit_common, "3.6.14", [hex: :rabbit_common, optional: false]}]},
   "ex_json_schema": {:hex, :ex_json_schema, "0.5.5", "d8d4c3f47b86c9e634e124d518b290dda82a8b94dcc314e45af10042fc369361", [:mix], []},
   "meck": {:hex, :meck, "0.8.4", "59ca1cd971372aa223138efcf9b29475bde299e1953046a0c727184790ab1520", [:make, :rebar], []},
   "mock": {:hex, :mock, "0.2.1", "bfdba786903e77f9c18772dee472d020ceb8ef000783e737725a4c8f54ad28ec", [:mix], [{:meck, "~> 0.8.2", [hex: :meck, optional: false]}]},
-  "poison": {:hex, :poison, "2.2.0", "4763b69a8a77bd77d26f477d196428b741261a761257ff1cf92753a0d4d24a63", [:mix], []},
-  "rabbit_common": {:hex, :rabbit_common, "3.6.7-pre.1", "cd8503e4176b5187e168c73d4f703aaf50de4e2b49e8a71df78370a8b6cf7d5b", [:make], []}}
+  "poison": {:hex, :poison, "3.1.0", "d9eb636610e096f86f25d9a46f35a9facac35609a7591b3be3326e99a0484665", [:mix], []},
+  "rabbit_common": {:hex, :rabbit_common, "3.6.14", "dc134cd7228f656367e6e6ac88f1f4ef4a63d8a78a2238f52990a4de467708a1", [:make, :rebar3], [{:recon, "2.3.2", [hex: :recon, optional: false]}]},
+  "recon": {:hex, :recon, "2.3.2", "4444c879be323b1b133eec5241cb84bd3821ea194c740d75617e106be4744318", [], []}}

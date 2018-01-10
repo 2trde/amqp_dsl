@@ -29,9 +29,9 @@ defmodule AmqpDsl.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:amqp, "~> 0.2.0-pre.2"},
+      {:amqp, "~> 0.3.0"},
       {:mock, "~> 0.2.0", only: :test},
-      {:poison, "~> 2.0"},
+      {:poison, "~> 3.0"},
       {:ex_json_schema, "~> 0.5.4"}
     ]
   end

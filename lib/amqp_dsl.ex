@@ -255,11 +255,13 @@ defmodule AmqpDsl do
 
       # Sent by the broker when the consumer is unexpectedly cancelled (such as after a queue deletion)
       def handle_info({:basic_cancel, %{consumer_tag: consumer_tag}}, chan) do
+        IO.puts "received basic_cancel"
         {:stop, :normal, chan}
       end
 
       # Confirmation sent by the broker to the consumer process after a Basic.cancel
       def handle_info({:basic_cancel_ok, %{consumer_tag: consumer_tag}}, chan) do
+        IO.puts "received basic_cancel_ok"
         {:noreply, chan}
       end
 
@@ -299,9 +301,14 @@ defmodule AmqpDsl do
             end
             do_consume(channel, fun, consumer_tag)
           {:basic_cancel, %{consumer_tag: ^consumer_tag, no_wait: _}} ->
+            IO.puts "received basic_cancel, quitting"
             exit(:basic_cancel)
           {:basic_cancel_ok, %{consumer_tag: ^consumer_tag}} ->
+            IO.puts "received basic_cancel_ok, quitting"
             exit(:normal)
+          other ->
+            IO.inspect(other, label: "unexpected message")
+            do_consume(channel, fun, consumer_tag)
         end
       end
 
