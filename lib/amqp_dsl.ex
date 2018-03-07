@@ -125,7 +125,6 @@ defmodule AmqpDsl do
       end
     end
 
-
     validate_json = if opts[:validate_json] do
       quote do
         ExJsonSchema.Validator.validate(@schema, message)
@@ -244,6 +243,7 @@ defmodule AmqpDsl do
       end
 
       def handle_info({:DOWN, _, :process, _pid, _reason}, _) do
+        IO.puts "AMQP, received :DOWN"
         {:ok, chan} = rabbitmq_connect()
         {:noreply, chan}
       end
