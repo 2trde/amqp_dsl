@@ -20,7 +20,7 @@ defmodule Test.SendTest do
 
     {:ok, pid} = SendTest.start_link()
 
-    test_pid = self
+    test_pid = self()
 
     AMQP.Queue.subscribe(chan, "test_send", fn(payload, _meta) ->
       send test_pid, {:message_received, payload}
@@ -48,7 +48,7 @@ defmodule Test.SendTest do
     # sending a message to an unknown exchange
     SendTest.send_exchange("unknown_exchange", "some_routing_key", "hey, I am going to be lost")
 
-    test_pid = self
+    test_pid = self()
 
     AMQP.Queue.subscribe(chan, "test_send", fn(payload, _meta) ->
       send test_pid, {:message_received, payload}

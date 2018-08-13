@@ -278,7 +278,7 @@ defmodule AmqpDsl do
 
       def handle_call({:send_exchange, exchange, key, msg}, _from, channel) do
         msg = Poison.encode!(msg)
-        IO.puts "sending to exhange '#{exchange}' with key '#{key}'"
+        IO.puts "sending to exchange '#{exchange}' with key '#{key}'"
         result = AMQP.Basic.publish(channel, exchange, key, msg)
         {:reply, result, channel}
       end
