@@ -35,11 +35,7 @@ defmodule Test.ExchangeTest do
 
     ExchangeTest.sample_send(%{msg: "Hello"})
 
-    receive do
-      {:message_received, msg} ->
-        assert Poison.decode!(msg) == %{"msg" => "Hello"}
-    after
-      500 -> raise "Failed"
-    end
+    assert_receive {:message_received, msg}
+    assert Poison.decode!(msg) == %{"msg" => "Hello"}
   end
 end

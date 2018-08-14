@@ -22,7 +22,7 @@ defmodule Test.LoopTest do
   use ExUnit.Case
   doctest AmqpDsl
 
-  test "test receive msg from queue" do
+  test "receive msg from queue" do
     {:ok, conn} = AMQP.Connection.open
     {:ok, chan} = AMQP.Channel.open(conn)
     AMQP.Queue.delete(chan, "test_receive")

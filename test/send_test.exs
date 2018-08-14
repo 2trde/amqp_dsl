@@ -13,7 +13,7 @@ defmodule Test.SendTest do
   use ExUnit.Case
   doctest AmqpDsl
 
-  test "test receive msg from queue" do
+  test "receive msg from queue" do
     {:ok, conn} = AMQP.Connection.open
     {:ok, chan} = AMQP.Channel.open(conn)
     AMQP.Queue.delete(chan, "test_receive")
@@ -28,12 +28,9 @@ defmodule Test.SendTest do
 
     SendTest.sample_send(%{msg: "Hello"})
 
-    receive do
-      {:message_received, msg} ->
-        assert Poison.decode!(msg) == %{"msg" => "Hello"}
-    after
-      500 -> raise "Failed"
-    end
+    assert_receive {:message_received, msg}
+    assert Poison.decode!(msg) == %{"msg" => "Hello"}
+
     Process.exit(pid, :normal)
     Process.exit(conn.pid, :normal)
   end
