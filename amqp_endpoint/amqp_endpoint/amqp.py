@@ -41,7 +41,7 @@ class AmqpEndpoint:
         self.on_receive = on_receive
     
     def run(self):
-        log(f'Service has been started, listening on queue {self.queue_name}.')
+        log('Service has been started, listening on queue {}.'.format(self.queue_name))
         try:
             for method_frame, _, body in self.channel.consume(self.queue_name):
                 log('Received a new message.')
@@ -50,7 +50,7 @@ class AmqpEndpoint:
                 if response is not None:
                     # delivery_mode = 2 -> persistent
                     self.channel.basic_publish(self.exchange, self.response_topic, response, pika.BasicProperties(content_type='text/json', delivery_mode=2))
-                    log(f'Sent response to exchange {self.exchange}, topic {self.response_topic}.')
+                    log('Sent response to exchange {}, topic {}.'.format(self.exchange, self.response_topic))
         except pika.exceptions.ConnectionClosed:
             if self.reconnect:
                 log('The connection has been closed, reconnecting ...')
@@ -68,10 +68,10 @@ class AmqpEndpoint:
             request = json.loads(body.decode('utf-8'))
             response = json.dumps(self.on_receive(request))
             elapsed_time = time.time() - start_time
-            log(f'Successfully processed request, took {elapsed_time} seconds.')
+            log('Successfully processed request, took {} seconds.'.format(elapsed_time))
             return response
         except Exception as error:
-            log(f'Unexpected error: {error}')
+            log('Unexpected error: {}'.format(error))
             print(traceback.format_exc())
             log('Failed to process request.')
             return None
