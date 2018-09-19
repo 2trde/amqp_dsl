@@ -1,1 +1,0 @@
-from .amqp import AmqpEndpoint

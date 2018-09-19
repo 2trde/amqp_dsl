@@ -1,10 +1,10 @@
 %{
-  "amqp": {:hex, :amqp, "0.3.0", "45c26acbc63507e4bf7fe9b2e7e32733dcf478a1695439baedc4690722b652d1", [:mix], [{:amqp_client, "~> 3.6.8", [hex: :amqp_client, optional: false]}, {:rabbit_common, "~> 3.6.8", [hex: :rabbit_common, optional: false]}]},
-  "amqp_client": {:hex, :amqp_client, "3.6.14", "523c4a84d7cab9ce19e1ba17274c87f10627e6539735c1f26dfe5ce2d5aad75d", [:make, :rebar3], [{:rabbit_common, "3.6.14", [hex: :rabbit_common, optional: false]}]},
-  "ex_json_schema": {:hex, :ex_json_schema, "0.5.5", "d8d4c3f47b86c9e634e124d518b290dda82a8b94dcc314e45af10042fc369361", [:mix], []},
-  "meck": {:hex, :meck, "0.8.11", "2c39e15ec87d847da6cf69b4a1c4af3fd850ae2a272e719e0e8751a7fe54771f", [:rebar3], []},
-  "mock": {:hex, :mock, "0.2.1", "bfdba786903e77f9c18772dee472d020ceb8ef000783e737725a4c8f54ad28ec", [:mix], [{:meck, "~> 0.8.2", [hex: :meck, optional: false]}]},
-  "poison": {:hex, :poison, "3.1.0", "d9eb636610e096f86f25d9a46f35a9facac35609a7591b3be3326e99a0484665", [:mix], []},
-  "rabbit_common": {:hex, :rabbit_common, "3.6.14", "dc134cd7228f656367e6e6ac88f1f4ef4a63d8a78a2238f52990a4de467708a1", [:make, :rebar3], [{:recon, "2.3.2", [hex: :recon, optional: false]}]},
-  "recon": {:hex, :recon, "2.3.2", "4444c879be323b1b133eec5241cb84bd3821ea194c740d75617e106be4744318", [:rebar3], []},
+  "amqp": {:hex, :amqp, "0.3.1", "c22887ff851e57c8012a7b340a9a837ae997ee819079e447222100ef2a1a7735", [:mix], [{:amqp_client, "~> 3.6.14", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.6.14", [hex: :rabbit_common, repo: "hexpm", optional: false]}, {:recon, "~> 2.3.2", [hex: :recon, repo: "hexpm", optional: false]}], "hexpm"},
+  "amqp_client": {:hex, :amqp_client, "3.6.16", "9e61e7a021b850a3092c84b377fd6c0f19ae648e9b4cb7b41c620d4a9a397f3c", [:make, :rebar3], [{:rabbit_common, "3.6.16", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
+  "ex_json_schema": {:hex, :ex_json_schema, "0.5.7", "14a1bcd716e432badb19e5f54fd0f3f0be47b34d1b5957944702be90d66a6cf6", [:mix], [], "hexpm"},
+  "meck": {:hex, :meck, "0.8.12", "1f7b1a9f5d12c511848fec26bbefd09a21e1432eadb8982d9a8aceb9891a3cf2", [:rebar3], [], "hexpm"},
+  "mock": {:hex, :mock, "0.2.1", "bfdba786903e77f9c18772dee472d020ceb8ef000783e737725a4c8f54ad28ec", [:mix], [{:meck, "~> 0.8.2", [hex: :meck, repo: "hexpm", optional: false]}], "hexpm"},
+  "poison": {:hex, :poison, "3.1.0", "d9eb636610e096f86f25d9a46f35a9facac35609a7591b3be3326e99a0484665", [:mix], [], "hexpm"},
+  "rabbit_common": {:hex, :rabbit_common, "3.6.16", "7f6a101963c151008b42373857ad7741be476210cfd4df5c4746ab45fa558861", [:make, :rebar3], [{:recon, "2.3.2", [hex: :recon, repo: "hexpm", optional: false]}], "hexpm"},
+  "recon": {:hex, :recon, "2.3.2", "4444c879be323b1b133eec5241cb84bd3821ea194c740d75617e106be4744318", [:rebar3], [], "hexpm"},
 }
