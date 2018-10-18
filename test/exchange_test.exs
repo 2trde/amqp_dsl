@@ -7,10 +7,6 @@ defmodule SendTest do
   messaging do
     exchange "test_exchange", :topic
 
-    queue queue_name() do
-      bind exchange_name, routing_key: "bla"
-    end
-
     out :sample_send, to_exchange: "test_exchange", routing_key: "bla"
   end
 end
@@ -29,6 +25,7 @@ defmodule Test.ExchangeTest do
 
     test_pid = self
 
+    AMQP.Queue.declare(chan, "test_send")
     AMQP.Queue.subscribe(chan, "test_send", fn(payload, _meta) ->
       send test_pid, {:message_received, payload}
     end)

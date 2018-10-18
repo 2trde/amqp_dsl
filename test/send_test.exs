@@ -2,9 +2,6 @@ defmodule SendTest do
   use AmqpDsl
 
   messaging do
-    queue "test_send" do
-    end
-
     out :sample_send, to_queue: "test_send"
   end
 end
@@ -16,12 +13,13 @@ defmodule Test.SendTest do
   test "test receive msg from queue" do
     {:ok, conn} = AMQP.Connection.open
     {:ok, chan} = AMQP.Channel.open(conn)
-    AMQP.Queue.delete(chan, "test_receive")
+    AMQP.Queue.delete(chan, "test_send")
 
     {:ok, pid} = SendTest.start_link()
 
     test_pid = self
 
+    AMQP.Queue.declare(chan, "test_send")
     AMQP.Queue.subscribe(chan, "test_send", fn(payload, _meta) ->
       send test_pid, {:message_received, payload}
     end)
@@ -42,6 +40,7 @@ defmodule Test.SendTest do
     {:ok, conn} = AMQP.Connection.open
     {:ok, chan} = AMQP.Channel.open(conn)
     AMQP.Queue.delete(chan, "test_receive")
+    AMQP.Queue.delete(chan, "test_send")
 
     {:ok, pid} = SendTest.start_link()
 
@@ -50,6 +49,7 @@ defmodule Test.SendTest do
 
     test_pid = self
 
+    AMQP.Queue.declare(chan, "test_send")
     AMQP.Queue.subscribe(chan, "test_send", fn(payload, _meta) ->
       send test_pid, {:message_received, payload}
     end)

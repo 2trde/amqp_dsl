@@ -27,10 +27,22 @@ defmodule AmqpDsl do
     end
   end
 
+  defmacro on_error(error, payload, meta, stacktrace, [do: body]) do
+    quote do
+      @has_error_handler true
+      def on_error(error, payload, meta, stacktrace) do
+        unquote(error) = error
+        unquote(payload) = payload
+        unquote(meta) = meta
+        unquote(stacktrace) = stacktrace
+        unquote(body)
+      end
+    end
+  end
   defmacro on_error(error, payload, meta, [do: body]) do
     quote do
       @has_error_handler true
-      def on_error(error, payload, meta) do
+      def on_error(error, payload, meta, _stacktrace) do
         unquote(error) = error
         unquote(payload) = payload
         unquote(meta) = meta
@@ -293,7 +305,7 @@ defmodule AmqpDsl do
               exception ->
                 if @has_error_handler do
                   IO.puts "adding apply for #{inspect __MODULE__}"
-                  apply(__MODULE__, :on_error, [exception , payload, meta])
+                  apply(__MODULE__, :on_error, [exception , payload, meta, System.stacktrace()])
                 else
                   IO.puts "error receiving message: #{inspect exception} for payload #{inspect payload}"
                 end
