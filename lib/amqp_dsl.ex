@@ -80,9 +80,9 @@ defmodule AmqpDsl do
         unquote(name)
       end
 
-      def consume(@queue_id, _channel, _routing_key, payload, tag) do
-        IO.puts "dont know how to route #{inspect payload}"
-      end
+      #def consume(@queue_id, _channel, _routing_key, payload, tag) do
+      #  IO.puts "dont know how to route #{inspect payload}"
+      #end
 
       def queue_init(channel, @queue_id) do
         AMQP.Queue.declare(channel, unquote(name), Keyword.merge(@queue_opts, unquote(opts)))
