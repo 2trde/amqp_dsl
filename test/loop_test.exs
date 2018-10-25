@@ -27,8 +27,8 @@ defmodule Test.LoopTest do
     {:ok, chan} = AMQP.Channel.open(conn)
     AMQP.Queue.delete(chan, "test_receive")
 
-    {:ok, pid} = LoopTest.start_link()
-    :global.register_name(LoopTest, self)
+    {:ok, _pid} = LoopTest.start_link()
+    :global.register_name(LoopTest, self())
 
     AMQP.Basic.publish chan, "pa.exchange", "bla", "123"
     AMQP.Basic.publish chan, "pb.exchange", "bla", "456"
@@ -36,5 +36,3 @@ defmodule Test.LoopTest do
     assert_receive {:message_received, 456}
   end
 end
-
-

@@ -3,14 +3,14 @@ defmodule ReceiveTest do
 
   messaging do
     queue "test_receive", durable: true do
-      on_receive(msg, routing_key: "test_receive_fake") do
+      on_receive(_, routing_key: "test_receive_fake") do
       end
       on_receive(msg, routing_key: "test_receive") do
         IO.puts "routing key received"
         :global.send(ReceiveTest, {:message_received, msg})
         raise "bang"
       end
-      on_receive(msg, routing_key: "test_receive_invalid") do
+      on_receive(_, routing_key: "test_receive_invalid") do
       end
     end
   end
@@ -25,9 +25,9 @@ defmodule Test.ReceiveTest do
     {:ok, chan} = AMQP.Channel.open(conn)
     AMQP.Queue.delete(chan, "test_receive")
 
-    {:ok, pid} = ReceiveTest.start_link()
+    {:ok, _pid} = ReceiveTest.start_link()
 
-    :global.register_name(ReceiveTest, self)
+    :global.register_name(ReceiveTest, self())
     AMQP.Basic.publish chan, "", "test_receive", "{\"msg\": \"Hello, World!\"}"
     AMQP.Basic.publish chan, "", "test_receive", "{\"msg\": \"Hello, World!\"}"
     assert_receive {:message_received, msg}, 500

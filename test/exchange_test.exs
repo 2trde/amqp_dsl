@@ -21,9 +21,9 @@ defmodule Test.ExchangeTest do
     AMQP.Queue.delete(chan, "test_send")
     AMQP.Exchange.delete(chan, "test_exchange")
 
-    {:ok, pid} = SendTest.start_link()
+    {:ok, _pid} = SendTest.start_link()
 
-    test_pid = self
+    test_pid = self()
 
     AMQP.Queue.declare(chan, "test_send")
     AMQP.Queue.subscribe(chan, "test_send", fn(payload, _meta) ->

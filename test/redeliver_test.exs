@@ -20,12 +20,11 @@ defmodule Test.RedeliverTest do
     {:ok, chan} = AMQP.Channel.open(conn)
     AMQP.Queue.delete(chan, "test_receive")
 
-    {:ok, pid} = RedeliverTest.start_link()
+    {:ok, _pid} = RedeliverTest.start_link()
 
-    :global.register_name(RedeliverTest, self)
+    :global.register_name(RedeliverTest, self())
     AMQP.Basic.publish chan, "", "test_receive", "{\"msg\": \"Hello, World!\"}"
     assert_receive {:message_received, _msg}, 500
     assert_receive {:message_received, _msg}, 500
   end
 end
-

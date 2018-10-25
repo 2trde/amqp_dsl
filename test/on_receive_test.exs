@@ -2,15 +2,15 @@ defmodule OnReceiveTest do
   use AmqpDsl
 
   messaging do
-    on_error(error, payload, _) do
+    on_error(error, _, _) do
       :global.send(OnReceiveTest, {:error_received, error})
     end
 
     queue "test_receive", durable: false do
-      on_receive(%{"name" => "Hans"} = msg) do
+      on_receive(%{"name" => "Hans"}) do
         :global.send(OnReceiveTest, {:message_received, "Hans"})
       end
-      on_receive(%{"name" => "Wurst"} = msg) do
+      on_receive(%{"name" => "Wurst"}) do
         :global.send(OnReceiveTest, {:message_received, "Wurst"})
       end
     end
@@ -26,8 +26,8 @@ defmodule Test.OnReceiveTest do
     {:ok, chan} = AMQP.Channel.open(conn)
     AMQP.Queue.delete(chan, "test_receive")
 
-    {:ok, pid} = OnReceiveTest.start_link()
-    :global.register_name(OnReceiveTest, self)
+    {:ok, _pid} = OnReceiveTest.start_link()
+    :global.register_name(OnReceiveTest, self())
 
     AMQP.Basic.publish chan, "", "test_receive", "{\"name\": \"Hans\", \"age\": 15}"
     AMQP.Basic.publish chan, "", "test_receive", "{\"name\": \"Wurst\", \"age\": 15}"
@@ -35,5 +35,3 @@ defmodule Test.OnReceiveTest do
     assert_receive {:message_received, "Wurst"}
   end
 end
-
-
