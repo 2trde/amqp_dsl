@@ -31,7 +31,7 @@ defmodule AmqpDsl.Mixfile do
     [
       {:amqp, github: "pma/amqp"},
       {:mock, "~> 0.3.0", only: :test},
-      {:poison, "~> 3.0"},
+      {:poison, "~> 4.0"},
       {:ex_json_schema, "~> 0.5.4"},
       {:meck, "~> 0.8.5"},
       {:ranch, "~> 1.6.2", override: true},
