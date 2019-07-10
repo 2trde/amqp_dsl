@@ -30,10 +30,10 @@ defmodule AmqpDsl.Mixfile do
   defp deps do
     [
       {:amqp, ">= 1.1.0"},
-      {:mock, "~> 0.3.0", only: :test},
+      {:mock, "~> 0.3", only: :test},
       {:poison, ">= 3.0.0"},
-      {:ex_json_schema, "~> 0.5.4"},
-      {:meck, "~> 0.8.5"}
+      {:ex_json_schema, "~> 0.5"},
+      {:meck, "~> 0.8"}
     ]
   end
 end

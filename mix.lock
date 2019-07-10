@@ -1,7 +1,7 @@
 %{
   "amqp": {:hex, :amqp, "1.1.0", "86bbea4f4d21b2941d98af1260bdd5ce94978678eb96059eb3065d506970cc16", [:mix], [{:amqp_client, "~> 3.7.9", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:goldrush, "~> 0.1.0", [hex: :goldrush, repo: "hexpm", optional: false]}, {:jsx, "~> 2.9", [hex: :jsx, repo: "hexpm", optional: false]}, {:lager, "~> 3.6.5", [hex: :lager, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.7.9", [hex: :rabbit_common, repo: "hexpm", optional: false]}, {:ranch, "~> 1.6.2", [hex: :ranch, repo: "hexpm", optional: false]}, {:ranch_proxy_protocol, "~> 2.1.1", [hex: :ranch_proxy_protocol, repo: "hexpm", optional: false]}, {:recon, "~> 2.3.6", [hex: :recon, repo: "hexpm", optional: false]}], "hexpm"},
   "amqp_client": {:hex, :amqp_client, "3.7.9", "ebef998500c31d4954e882868806258a9cebf01dd6c76804b1a2efdb454753fc", [:make, :rebar3], [{:rabbit_common, "3.7.9", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
-  "ex_json_schema": {:hex, :ex_json_schema, "0.5.8", "9758444f560ebf5e1c5cb37d41a122707939f75136c7a79c4ff4ca6ad5283fb9", [:mix], [], "hexpm"},
+  "ex_json_schema": {:hex, :ex_json_schema, "0.6.1", "b57c0588385b8262b80f19d33d9b9b71fcd60d247691abf2635b57a03ec0ad44", [:mix], [], "hexpm"},
   "goldrush": {:hex, :goldrush, "0.1.9", "f06e5d5f1277da5c413e84d5a2924174182fb108dabb39d5ec548b27424cd106", [:rebar3], [], "hexpm"},
   "jsx": {:hex, :jsx, "2.9.0", "d2f6e5f069c00266cad52fb15d87c428579ea4d7d73a33669e12679e203329dd", [:mix, :rebar3], [], "hexpm"},
   "lager": {:hex, :lager, "3.6.5", "831910109f3fcb503debf658ca0538836b348c58bfbf349a6d48228096ce9040", [:rebar3], [{:goldrush, "0.1.9", [hex: :goldrush, repo: "hexpm", optional: false]}], "hexpm"},
