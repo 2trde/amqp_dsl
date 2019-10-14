@@ -217,7 +217,9 @@ defmodule AmqpDsl do
           {:ok, conn} ->
             Process.monitor(conn.pid)
             {:ok, chan} = AMQP.Channel.open(conn)
-            Process.monitor(chan.pid)
+
+            # lets test if works without monitoring the channel
+            # Process.monitor(chan.pid)
 
             # Limit unacknowledged messages to 10
             AMQP.Basic.qos(chan, prefetch_count: 10)
