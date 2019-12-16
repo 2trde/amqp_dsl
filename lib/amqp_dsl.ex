@@ -254,7 +254,13 @@ defmodule AmqpDsl do
       end
 
       def init(_opts) do
+        # move the amqp initialization to the async part of init, use handle_continue...
+        {:ok, nil, {:continue, :connect}}
+      end
+
+      def handle_continue(:connect, state) do
         {:ok, chan} = rabbitmq_connect()
+        {:noreply, chan}
       end
 
       def handle_info({:DOWN, _, :process, _pid, _reason}, _) do
