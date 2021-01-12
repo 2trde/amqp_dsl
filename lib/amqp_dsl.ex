@@ -313,7 +313,7 @@ defmodule AmqpDsl do
               exception ->
                 if @has_error_handler do
                   IO.puts "adding apply for #{inspect __MODULE__}"
-                  apply(__MODULE__, :on_error, [exception , payload, meta, System.stacktrace()])
+                  apply(__MODULE__, :on_error, [exception , payload, meta, __STACKTRACE__])
                 else
                   IO.puts "error receiving message: #{inspect exception} for payload #{inspect payload}"
                 end
