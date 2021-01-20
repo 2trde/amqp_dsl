@@ -210,6 +210,9 @@ defmodule AmqpDsl do
         GenServer.start_link(__MODULE__, [], name: __MODULE__)
       end
 
+      # new standard
+      def start_link(_), do: start_link()
+
       def rabbitmq_connect() do
         IO.puts "AMQP connection to #{connection()}"
         AMQP.Connection.open(connection())
