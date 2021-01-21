@@ -1,6 +1,7 @@
 defmodule AmqpDsl do
   defmacro __using__(_) do
     quote do
+      require Logger
       require AmqpDsl
       import AmqpDsl
 
@@ -8,6 +9,7 @@ defmodule AmqpDsl do
       use AMQP
     end
   end
+
 
   @doc """
   define connection of amqp server
@@ -92,10 +94,6 @@ defmodule AmqpDsl do
         unquote(name)
       end
 
-      #def consume(@queue_id, _channel, _routing_key, payload, tag) do
-      #  IO.puts "dont know how to route #{inspect payload}"
-      #end
-
       def queue_init(channel, @queue_id) do
         AMQP.Queue.declare(channel, unquote(name), Keyword.merge(@queue_opts, unquote(opts)))
         #AMQP.Queue.declare(channel, unquote(name), @queue_opts)
@@ -111,11 +109,6 @@ defmodule AmqpDsl do
       end
       @queue_id nil
     end
-  end
-
-  def inspect_code(ast) do
-    IO.puts Macro.to_string(ast)
-    ast
   end
 
   @doc """
@@ -194,7 +187,6 @@ defmodule AmqpDsl do
       @bindings []
       @has_error_handler false
 
-
       unquote(body)
 
       def queue_init(_, _), do: raise "default impl of queue_init should never be called!"
@@ -214,7 +206,8 @@ defmodule AmqpDsl do
       def start_link(_), do: start_link()
 
       def rabbitmq_connect() do
-        IO.puts "AMQP connection to #{connection()}"
+        Logger.info("AMQP connection to #{connection()}")
+
         AMQP.Connection.open(connection())
         |> case do
           {:ok, conn} ->
@@ -222,7 +215,7 @@ defmodule AmqpDsl do
             {:ok, chan} = AMQP.Channel.open(conn)
 
             # lets test if works without monitoring the channel
-            # Process.monitor(chan.pid)
+            Process.monitor(chan.pid)
 
             # Limit unacknowledged messages to 10
             AMQP.Basic.qos(chan, prefetch_count: 10)
@@ -230,10 +223,9 @@ defmodule AmqpDsl do
             @exchanges
             |> Enum.reverse
             |> Enum.map(fn({name, type, options}) ->
-              IO.puts "declaring exchange #{name} with type #{inspect type}"
+              Logger.info("declaring exchange #{name} with type #{inspect type}")
               AMQP.Exchange.declare(chan, name, type, options)
             end)
-
 
             # Register the GenServer process as a consumer
             @queue_ids
@@ -267,7 +259,7 @@ defmodule AmqpDsl do
       end
 
       def handle_info({:DOWN, _, :process, _pid, _reason}, _) do
-        IO.puts "AMQP, received :DOWN"
+        Logger.error("AMQP, received :DOWN")
         {:ok, chan} = rabbitmq_connect()
         {:noreply, chan}
       end
@@ -279,13 +271,13 @@ defmodule AmqpDsl do
 
       # Sent by the broker when the consumer is unexpectedly cancelled (such as after a queue deletion)
       def handle_info({:basic_cancel, %{consumer_tag: consumer_tag}}, chan) do
-        IO.puts "received basic_cancel"
+        Logger.info("received basic_cancel")
         {:stop, :normal, chan}
       end
 
       # Confirmation sent by the broker to the consumer process after a Basic.cancel
       def handle_info({:basic_cancel_ok, %{consumer_tag: consumer_tag}}, chan) do
-        IO.puts "received basic_cancel_ok"
+        Logger.info("received basic_cancel_ok")
         {:noreply, chan}
       end
 
@@ -301,7 +293,7 @@ defmodule AmqpDsl do
 
       def handle_call({:send_exchange, exchange, key, msg}, _from, channel) do
         msg = Poison.encode!(msg)
-        IO.puts "sending to exchange '#{exchange}' with key '#{key}'"
+        Logger.info("sending to exchange '#{exchange}' with key '#{key}'")
         result = AMQP.Basic.publish(channel, exchange, key, msg)
         {:reply, result, channel}
       end
@@ -315,23 +307,23 @@ defmodule AmqpDsl do
             rescue
               exception ->
                 if @has_error_handler do
-                  IO.puts "adding apply for #{inspect __MODULE__}"
+                  Logger.info("adding apply for #{inspect __MODULE__}")
                   apply(__MODULE__, :on_error, [exception , payload, meta, __STACKTRACE__])
                 else
-                  IO.puts "error receiving message: #{inspect exception} for payload #{inspect payload}"
+                  Logger.error("error receiving message: #{inspect exception} for payload #{inspect payload}")
                 end
                 # we will requeue the messages once (not redilivered before)
                 AMQP.Basic.reject(channel, delivery_tag, requeue: !meta.redelivered)
             end
             do_consume(channel, fun, consumer_tag)
           {:basic_cancel, %{consumer_tag: ^consumer_tag, no_wait: _}} ->
-            IO.puts "received basic_cancel, quitting"
+            Logger.info("received basic_cancel, quitting")
             exit(:basic_cancel)
           {:basic_cancel_ok, %{consumer_tag: ^consumer_tag}} ->
-            IO.puts "received basic_cancel_ok, quitting"
+            Logger.info("received basic_cancel_ok, quitting")
             exit(:normal)
           other ->
-            IO.inspect(other, label: "unexpected message")
+            Logger.error("unexpected message: #{inspect(other)}")
             do_consume(channel, fun, consumer_tag)
         end
       end
